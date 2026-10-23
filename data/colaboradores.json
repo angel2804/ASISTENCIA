@@ -1,0 +1,41 @@
+[
+  {
+    "dni": "71234567",
+    "nombre": "Carlos Alberto Ramos",
+    "cargo": "Técnico de Campo Fibra Óptica",
+    "area": "Operaciones Red Movistar",
+    "telefono": "+51987654321",
+    "fechaRegistro": "2026-01-15"
+  },
+  {
+    "dni": "45678901",
+    "nombre": "Maria Elena Flores",
+    "cargo": "Asesora de Atención y Ventas",
+    "area": "Comercial Movistar",
+    "telefono": "+51912345678",
+    "fechaRegistro": "2026-02-10"
+  },
+  {
+    "dni": "78901234",
+    "nombre": "Jorge Luis Salazar",
+    "cargo": "Supervisor de Cuadrilla",
+    "area": "Infraestructura y Redes",
+    "telefono": "+51955443322",
+    "fechaRegistro": "2026-03-01"
+  },
+  {
+    "dni": "12345678",
+    "nombre": "Juan Perez Cotrina",
+    "cargo": "Técnico Instalador HFC / FTTH",
+    "area": "Servicio Técnico Movistar",
+    "telefono": "+51999888777",
+    "fechaRegistro": "2026-03-15"
+  },
+  {
+    "dni": "72211531",
+    "nombre": "EDDY",
+    "cargo": "Colaborador Movistar",
+    "area": "Campo / Operaciones",
+    "fechaRegistro": "2026-10-23"
+  }
+]

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#012544">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Movistar Asistencia Móvil</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast-notice">
+    <i class="fa-solid fa-circle-info" id="toast-icon"></i>
+    <span id="toast-msg">Mensaje del sistema</span>
+  </div>
+
+  <div class="page-wrapper">
+
+    <!-- DESKTOP COMPANION SIDE CARD (Visible when viewed on PC/Laptop) -->
+    <div class="desktop-side-card">
+      <h2>
+        <i class="fa-solid fa-mobile-screen-button" style="color: #019DF4;"></i>
+        App Móvil Movistar
+      </h2>
+      <p>
+        Esta aplicación está <strong>diseñada exclusivamente para teléfonos celulares</strong> con geolocalización GPS satelital.
+      </p>
+
+      <div class="qr-box">
+        <img id="side-qr-img" src="" alt="Código QR para celular">
+        <span>📲 Escanea con la cámara de tu celular</span>
+      </div>
+
+      <div>
+        <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; margin-bottom: 4px; display: block;">
+          ENLACE MÓVIL RECOMENDADO (HTTPS):
+        </label>
+        <div class="url-badge" id="side-https-url">Cargando enlace...</div>
+      </div>
+
+      <div style="font-size: 0.78rem; color: #94a3b8; line-height: 1.4; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 10px;">
+        💡 <strong>Nota sobre GPS:</strong> Los celulares requieren HTTPS o localhost para activar el GPS. Si usas Chrome en Android o Safari en iPhone, abre el enlace HTTPS y pulsa "Avanzado > Continuar".
+      </div>
+    </div>
+
+    <!-- PHONE FRAME (Mobile App Container) -->
+    <div class="phone-frame" id="phone-container">
+      
+      <!-- Canvas for Confetti effects -->
+      <canvas id="confetti-canvas"></canvas>
+
+      <!-- Dynamic Notch -->
+      <div class="phone-notch">
+        <div class="notch-camera"></div>
+      </div>
+
+      <!-- Phone Status Bar -->
+      <div class="phone-status-bar">
+        <span id="status-clock">09:45</span>
+        <div class="status-bar-icons">
+          <i class="fa-solid fa-signal"></i>
+          <i class="fa-solid fa-wifi"></i>
+          <i class="fa-solid fa-battery-full"></i>
+        </div>
+      </div>
+
+      <!-- App Header -->
+      <header class="app-header">
+        <div class="brand-bar">
+          <div class="brand-title">
+            <div class="brand-logo-m">M</div>
+            <div class="brand-text">
+              <h1>Movistar</h1>
+              <span>Control de Asistencia</span>
+            </div>
+          </div>
+          <button id="btn-toggle-demo-gps" title="Simular GPS (Para pruebas)" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 34px; height: 34px; border-radius: 10px; cursor: pointer;">
+            <i class="fa-solid fa-satellite"></i>
+          </button>
+        </div>
+
+        <!-- Live Clock & Date -->
+        <div class="header-live-time">
+          <div>
+            <div style="font-size: 0.65rem; color: #7dd3fc; font-weight: 700; text-transform: uppercase;">Hora Oficial</div>
+            <div class="live-time-display" id="header-live-clock">00:00:00 AM</div>
+          </div>
+          <div class="live-date-display" id="header-live-date">
+            Cargando fecha...
+          </div>
+        </div>
+      </header>
+
+      <!-- Scrollable Main Content -->
+      <main class="app-main">
+
+        <!-- ==============================================
+             TAB 1: MARCAR ASISTENCIA
+             ============================================== -->
+        <section id="tab-marcar" class="tab-screen active">
+
+          <!-- State A: Formulario de Marcación (Si aún no marcó hoy) -->
+          <div id="section-form-marcar">
+
+            <!-- Card: Identificación del Colaborador -->
+            <div class="mobile-card">
+              <div class="card-title-row">
+                <div class="card-title">
+                  <i class="fa-solid fa-id-card" style="color: #019DF4;"></i>
+                  Identificación
+                </div>
+                <span class="step-pill">PASO 1</span>
+              </div>
+
+              <div class="input-group">
+                <label class="input-label" for="input-dni">Ingresa tu número de DNI</label>
+                <div class="input-field-wrapper">
+                  <i class="fa-regular fa-address-card input-icon"></i>
+                  <input type="text" id="input-dni" class="text-input dni-input" 
+                         inputmode="numeric" pattern="[0-9]*" maxlength="8" 
+                         placeholder="Ej. 71234567" autocomplete="off">
+                </div>
+              </div>
+
+              <!-- Worker detected or custom name -->
+              <div id="worker-detected-box" class="worker-badge-box" style="display: none;">
+                <div class="worker-avatar" id="worker-avatar-letter">C</div>
+                <div class="worker-details">
+                  <div class="name" id="worker-detected-name">Carlos Alberto Ramos</div>
+                  <div class="role" id="worker-detected-cargo">Técnico de Campo</div>
+                </div>
+              </div>
+
+              <!-- If worker is not registered, allow entering name -->
+              <div id="worker-new-name-box" class="input-group" style="display: none; margin-top: 10px;">
+                <label class="input-label" for="input-nombre">Nombre y Apellido Completo</label>
+                <div class="input-field-wrapper">
+                  <i class="fa-regular fa-user input-icon"></i>
+                  <input type="text" id="input-nombre" class="text-input" placeholder="Ej. Juan Pérez">
+                </div>
+              </div>
+
+              <label class="checkbox-row">
+                <input type="checkbox" id="chk-recordar" checked>
+                <span>Recordar mi DNI en este teléfono celular</span>
+              </label>
+            </div>
+
+            <!-- Card: Estado de Ubicación Satelital GPS -->
+            <div class="mobile-card">
+              <div class="card-title-row">
+                <div class="card-title">
+                  <i class="fa-solid fa-location-dot" style="color: #019DF4;"></i>
+                  Geolocalización GPS
+                </div>
+                <span class="step-pill">PASO 2</span>
+              </div>
+
+              <div class="gps-status-card" id="gps-status-box">
+                <div class="radar-wrapper">
+                  <div class="radar-circle"></div>
+                  <div class="radar-icon" id="gps-icon">
+                    <i class="fa-solid fa-satellite-dish"></i>
+                  </div>
+                </div>
+                <div class="gps-info-text">
+                  <div class="title" id="gps-status-title">Ubicación Requerida</div>
+                  <div class="desc" id="gps-status-desc">
+                    El sistema verificará tu posición satelital obligatoria al marcar.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Live coordinates preview if already captured -->
+              <div id="gps-coords-preview" style="display: none; margin-top: 10px; font-size: 0.75rem; background: #f1f5f9; padding: 8px 12px; border-radius: 10px; color: #475569;">
+                <div style="font-weight: 700; color: #012544;" id="gps-address-text">Obteniendo dirección...</div>
+                <div style="margin-top: 2px;" id="gps-accuracy-text">Precisión GPS: ±0m</div>
+              </div>
+
+              <!-- Mini interactive map preview -->
+              <div id="mark-map-box" class="map-container-box" style="display: none;"></div>
+            </div>
+
+            <!-- Botón Principal: Marcar Asistencia -->
+            <button id="btn-marcar" class="btn-primary" style="margin-top: 6px;">
+              <i class="fa-solid fa-fingerprint" style="font-size: 1.3rem;"></i>
+              <span>MARCAR ASISTENCIA AHORA</span>
+            </button>
+
+            <div style="text-align: center; margin-top: 14px; font-size: 0.72rem; color: #64748b; line-height: 1.4;">
+              🔒 <strong>Regla de marcación:</strong> Solo se permite 1 marcación de asistencia al día por colaborador. Al marcar, se registrará tu ubicación GPS y la hora exacta.
+            </div>
+
+          </div>
+
+          <!-- State B: Ya Marcó Asistencia Hoy (Bloqueado hasta el día siguiente) -->
+          <div id="section-ya-marco" style="display: none;">
+            <div class="locked-card">
+              <div class="locked-icon-badge">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+              <h2 class="locked-title">¡Marcación Exitosa!</h2>
+              <p class="locked-subtitle">
+                Ya registraste tu asistencia el día de hoy. Tu registro está guardado y validado en el sistema Movistar.
+              </p>
+
+              <!-- Locked Ticket Details -->
+              <div class="locked-ticket-box">
+                <div class="ticket-line">
+                  <span class="ticket-label">Colaborador:</span>
+                  <span class="ticket-val" id="locked-worker-name">Carlos Alberto Ramos</span>
+                </div>
+                <div class="ticket-line">
+                  <span class="ticket-label">DNI:</span>
+                  <span class="ticket-val" id="locked-worker-dni">71234567</span>
+                </div>
+                <div class="ticket-line">
+                  <span class="ticket-label">Fecha:</span>
+                  <span class="ticket-val" id="locked-date">23/10/2026</span>
+                </div>
+                <div class="ticket-line">
+                  <span class="ticket-label">Hora Exacta:</span>
+                  <span class="ticket-val" style="color: #019DF4;" id="locked-time">08:45:12 AM</span>
+                </div>
+                <div class="ticket-line">
+                  <span class="ticket-label">Ubicación GPS:</span>
+                  <span class="ticket-val" id="locked-address" style="max-width: 60%;">San Isidro, Lima</span>
+                </div>
+              </div>
+
+              <!-- Locked Map View -->
+              <div id="locked-map-box" class="map-container-box"></div>
+
+              <!-- Restriction Notice -->
+              <div class="locked-next-mark" style="margin-top: 14px;">
+                <i class="fa-solid fa-lock" style="font-size: 1.1rem; color: #b45309;"></i>
+                <div>
+                  <strong>No puedes volver a marcar hoy.</strong><br>
+                  Tu próxima marcación estará habilitada mañana a partir de las 00:00 hrs.
+                </div>
+              </div>
+
+              <!-- WhatsApp Share Button for Worker -->
+              <button id="btn-worker-share-whatsapp" class="btn-whatsapp" style="width: 100%;">
+                <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i>
+                <span>Enviar mi comprobante por WhatsApp</span>
+              </button>
+
+              <button id="btn-cambiar-dni" class="btn-secondary" style="width: 100%; margin-top: 10px;">
+                <i class="fa-solid fa-user-pen"></i>
+                <span>Marcar con otro DNI</span>
+              </button>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==============================================
+             TAB 2: MI HISTORIAL / COMPROBANTES
+             ============================================== -->
+        <section id="tab-historial" class="tab-screen">
+          <div class="mobile-card">
+            <div class="card-title-row">
+              <div class="card-title">
+                <i class="fa-solid fa-clock-rotate-left" style="color: #019DF4;"></i>
+                Mis Registros Recientes
+              </div>
+            </div>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 14px;">
+              Consulta el comprobante de tus asistencias registradas con este DNI:
+            </p>
+
+            <div id="historial-list-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ==============================================
+             TAB 3: PANEL DE ADMINISTRADOR
+             ============================================== -->
+        <section id="tab-admin" class="tab-screen">
+          
+          <!-- Admin Header Card -->
+          <div class="admin-header-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 0.7rem; color: #38bdf8; font-weight: 700; text-transform: uppercase;">
+                  Supervisión y Control
+                </span>
+                <h2 style="font-size: 1.2rem; font-weight: 800; color: #fff;">Panel Administrador</h2>
+              </div>
+              <button id="btn-admin-refresh" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; cursor: pointer;">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="admin-stats-grid">
+              <div class="stat-item">
+                <div class="stat-number" id="admin-stat-total">0</div>
+                <div class="stat-label">ASISTENCIAS HOY</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number" id="admin-stat-primera">--:--</div>
+                <div class="stat-label">PRIMER INGRESO</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- WHATSAPP SUMMARY CALL-TO-ACTION (Core Requirement) -->
+          <div class="whatsapp-action-box">
+            <h3>
+              <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i>
+              Mandar Resumen por WhatsApp
+            </h3>
+            <p>
+              Envía un mensaje resumen breve y ordenado con el <strong>DNI, Nombre, Hora, Fecha y Ubicación GPS con enlace a Google Maps</strong> directamente a WhatsApp.
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button id="btn-admin-whatsapp-all" class="btn-whatsapp" style="width: 100%;">
+                <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i>
+                <span>Enviar Resumen del Día a WhatsApp</span>
+              </button>
+
+              <button id="btn-admin-copy-summary" class="btn-secondary" style="width: 100%;">
+                <i class="fa-solid fa-copy"></i>
+                <span>Copiar Resumen al Portapapeles</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Date Filter Card -->
+          <div class="mobile-card" style="padding: 14px 18px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #012544;">Filtrar por Fecha:</span>
+              <input type="date" id="admin-filter-date" style="padding: 6px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-weight: 700; color: #012544; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <!-- Attendance Records List -->
+          <div id="admin-attendance-list">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Admin Tools / Testing utilities -->
+          <div class="mobile-card" style="margin-top: 10px; background: #fafafa;">
+            <div class="card-title" style="font-size: 0.85rem; margin-bottom: 10px;">
+              <i class="fa-solid fa-wrench"></i> Herramientas de Administrador
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button id="btn-admin-reset-today" class="btn-secondary" style="font-size: 0.78rem; color: #b91c1c; border-color: #fca5a5;">
+                <i class="fa-solid fa-rotate-left"></i>
+                Reiniciar Marcaciones de Hoy (Para Pruebas)
+              </button>
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+
+      <!-- Bottom App Navigation Bar -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" data-tab="tab-marcar">
+          <i class="fa-solid fa-fingerprint"></i>
+          <span>Marcar</span>
+        </button>
+        <button class="nav-item" data-tab="tab-historial">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Historial</span>
+        </button>
+        <button class="nav-item" data-tab="tab-admin">
+          <i class="fa-solid fa-user-shield"></i>
+          <span>Admin</span>
+        </button>
+      </nav>
+
+    </div><!-- /phone-frame -->
+
+  </div><!-- /page-wrapper -->
+
+  <!-- MODAL: Ubicación Obligatoria Helper -->
+  <div class="modal-overlay" id="modal-gps-help">
+    <div class="modal-card">
+      <div style="text-align: center; margin-bottom: 14px;">
+        <div style="width: 60px; height: 60px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto;">
+          <i class="fa-solid fa-location-crosshairs"></i>
+        </div>
+      </div>
+      <h3 class="modal-title" style="text-align: center;">Ubicación GPS Obligatoria</h3>
+      <div class="modal-body">
+        <p style="margin-bottom: 10px;">
+          Para validar tu asistencia es <strong>estrictamente obligatorio activar el GPS</strong> y permitir el acceso a la ubicación en tu navegador celular.
+        </p>
+        <div style="background: #f8fafc; padding: 10px; border-radius: 12px; font-size: 0.78rem; border-left: 3px solid #019DF4;">
+          <strong>Cómo activarlo:</strong><br>
+          1. Activa la Ubicación / GPS en los ajustes rápidos de tu celular.<br>
+          2. Si tu navegador te pregunta, pulsa <strong>"Permitir"</strong>.<br>
+          3. Si usas HTTPS, pulsa "Continuar de todos modos".
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="btn-modal-retry-gps" class="btn-primary" style="padding: 12px;">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          Reintentar con GPS
+        </button>
+        <button id="btn-modal-demo-gps" class="btn-secondary" style="padding: 10px; font-size: 0.8rem;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          Usar Ubicación de Prueba (Demo)
+        </button>
+        <button id="btn-modal-close-gps" class="btn-secondary" style="padding: 10px; border: none; background: transparent; color: #64748b;">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Sound Effects -->
+  <script src="sound.js"></script>
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>
