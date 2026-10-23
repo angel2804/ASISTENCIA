@@ -253,9 +253,9 @@
               </div>
 
               <!-- WhatsApp Share Button for Worker -->
-              <button id="btn-worker-share-whatsapp" class="btn-whatsapp" style="width: 100%;">
-                <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i>
-                <span>Enviar mi comprobante por WhatsApp</span>
+              <button id="btn-worker-share-whatsapp" class="btn-whatsapp" style="width: 100%; font-size: 0.95rem; padding: 15px;">
+                <i class="fa-brands fa-whatsapp" style="font-size: 1.3rem;"></i>
+                <span>Enviar mi Reporte de Ingreso por WhatsApp</span>
               </button>
 
               <button id="btn-cambiar-dni" class="btn-secondary" style="width: 100%; margin-top: 10px;">
@@ -302,9 +302,14 @@
                 </span>
                 <h2 style="font-size: 1.2rem; font-weight: 800; color: #fff;">Panel Administrador</h2>
               </div>
-              <button id="btn-admin-refresh" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; cursor: pointer;">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
+              <div style="display: flex; gap: 8px;">
+                <button id="btn-admin-refresh" title="Actualizar lista" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; cursor: pointer;">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button id="btn-admin-logout" title="Bloquear / Cerrar Sesión Admin" style="background: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; width: 36px; height: 36px; border-radius: 10px; cursor: pointer;">
+                  <i class="fa-solid fa-lock"></i>
+                </button>
+              </div>
             </div>
 
             <!-- Stats Grid -->
@@ -424,6 +429,43 @@
         </button>
         <button id="btn-modal-close-gps" class="btn-secondary" style="padding: 10px; border: none; background: transparent; color: #64748b;">
           Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PIN de Administrador (PIN 2804) -->
+  <div class="modal-overlay" id="modal-admin-pin">
+    <div class="modal-card" style="text-align: center;">
+      <div style="width: 64px; height: 64px; background: rgba(1, 157, 244, 0.12); color: #019DF4; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 14px auto;">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <h3 class="modal-title">Acceso de Administrador</h3>
+      <div class="modal-body" style="margin-bottom: 14px; font-size: 0.8rem;">
+        Se requiere el <strong>PIN de seguridad de 4 dígitos</strong> para ver la lista de todos los colaboradores, supervisar las asistencias o realizar cambios.
+      </div>
+
+      <!-- PIN Input -->
+      <div style="margin-bottom: 18px;">
+        <label for="admin-pin-input" style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 8px;">
+          INGRESA EL PIN DE ACCESO:
+        </label>
+        <input type="password" id="admin-pin-input" class="text-input" 
+               inputmode="numeric" pattern="[0-9]*" maxlength="4"
+               style="text-align: center; letter-spacing: 12px; font-size: 1.8rem; font-weight: 800; padding: 10px; border-radius: 14px; width: 170px; margin: 0 auto; display: block;"
+               placeholder="••••" autocomplete="off">
+        <div id="pin-error-msg" style="color: #dc2626; font-size: 0.75rem; font-weight: 700; margin-top: 8px; display: none;">
+          ⚠️ PIN incorrecto. Acceso denegado.
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="btn-submit-pin" class="btn-primary" style="padding: 13px;">
+          <i class="fa-solid fa-lock-open"></i>
+          Ingresar al Panel
+        </button>
+        <button id="btn-cancel-pin" class="btn-secondary" style="padding: 10px; border: none; background: transparent; color: #64748b;">
+          Cancelar y Volver
         </button>
       </div>
     </div>

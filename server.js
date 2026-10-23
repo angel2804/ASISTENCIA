@@ -34,6 +34,10 @@ if (!fs.existsSync(COLABORADORES_FILE)) {
   fs.writeFileSync(COLABORADORES_FILE, '[]', 'utf8');
 }
 
+// Peru Timezone Constant
+const PERU_TIMEZONE = 'America/Lima';
+const ADMIN_PIN = '2804';
+
 // Helpers
 function readJson(file) {
   try {
@@ -55,22 +59,25 @@ function writeJson(file, data) {
   }
 }
 
-// Format local date string YYYY-MM-DD
+// Format Peru date string YYYY-MM-DD (Always America/Lima)
 function getLocalDateString(dateObj = new Date()) {
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: PERU_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(dateObj);
 }
 
-// Format local time string HH:MM:SS AM/PM
+// Format Peru time string HH:MM:SS a.m./p.m. (Always America/Lima)
 function getLocalTimeString(dateObj = new Date()) {
-  return dateObj.toLocaleTimeString('es-PE', {
+  return new Intl.DateTimeFormat('es-PE', {
+    timeZone: PERU_TIMEZONE,
     hour12: true,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
-  });
+  }).format(dateObj);
 }
 
 // Get network IPv4 addresses
@@ -202,10 +209,36 @@ app.get('/api/asistencias/hoy/:dni', (req, res) => {
   });
 });
 
+// Verify Admin PIN endpoint
+app.post('/api/admin/verify-pin', (req, res) => {
+  const { pin } = req.body;
+  if (String(pin).trim() === ADMIN_PIN) {
+    return res.json({ success: true, message: 'PIN correcto' });
+  }
+  return res.status(401).json({ success: false, error: 'PIN incorrecto' });
+});
+
+// Helper to check admin pin
+function verifyAdminAuth(req, res, next) {
+  const pin = req.headers['x-admin-pin'] || req.query.pin || req.body?.pin;
+  if (String(pin).trim() === ADMIN_PIN) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Acceso no autorizado. Se requiere PIN de administrador (2804).' });
+}
+
 // Get asistencias (filters: fecha, dni)
 app.get('/api/asistencias', (req, res) => {
   const { fecha, dni } = req.query;
   let asistencias = readJson(ASISTENCIAS_FILE);
+
+  // If viewing all workers without filtering by own DNI, require Admin PIN!
+  if (!dni) {
+    const pin = req.headers['x-admin-pin'] || req.query.pin;
+    if (String(pin).trim() !== ADMIN_PIN) {
+      return res.status(403).json({ error: 'Acceso denegado. Se requiere PIN de administrador para ver todas las asistencias.' });
+    }
+  }
 
   if (fecha) {
     asistencias = asistencias.filter(a => a.fecha === fecha);
@@ -310,8 +343,8 @@ app.post('/api/asistencias', (req, res) => {
   });
 });
 
-// Admin: Delete attendance record
-app.delete('/api/asistencias/:id', (req, res) => {
+// Admin: Delete attendance record (Requires PIN)
+app.delete('/api/asistencias/:id', verifyAdminAuth, (req, res) => {
   const { id } = req.params;
   const asistencias = readJson(ASISTENCIAS_FILE);
   const filtered = asistencias.filter(a => a.id !== id);
@@ -324,8 +357,8 @@ app.delete('/api/asistencias/:id', (req, res) => {
   res.json({ success: true, message: 'Registro eliminado con éxito' });
 });
 
-// Admin: Clear today's marks (useful for testing)
-app.post('/api/asistencias/reset-hoy', (req, res) => {
+// Admin: Clear today's marks (Requires PIN)
+app.post('/api/asistencias/reset-hoy', verifyAdminAuth, (req, res) => {
   const today = getLocalDateString();
   const asistencias = readJson(ASISTENCIAS_FILE);
   const remaining = asistencias.filter(a => a.fecha !== today);
@@ -333,8 +366,8 @@ app.post('/api/asistencias/reset-hoy', (req, res) => {
   res.json({ success: true, message: `Se limpiaron las marcaciones de hoy (${today})` });
 });
 
-// WhatsApp text formatting endpoint
-app.get('/api/resumen/whatsapp', (req, res) => {
+// WhatsApp text formatting endpoint (Requires PIN for full team summary)
+app.get('/api/resumen/whatsapp', verifyAdminAuth, (req, res) => {
   const fecha = req.query.fecha || getLocalDateString();
   const asistencias = readJson(ASISTENCIAS_FILE).filter(a => a.fecha === fecha);
 

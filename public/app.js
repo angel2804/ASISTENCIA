@@ -86,27 +86,34 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   // ====================================================
-  // CLOCK & TIME
+  // CLOCK & TIME (Always Peru America/Lima Timezone)
   // ====================================================
+  const PERU_TZ = 'America/Lima';
+
   function updateClock() {
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('es-PE', {
+    const timeStr = new Intl.DateTimeFormat('es-PE', {
+      timeZone: PERU_TZ,
       hour12: true,
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
-    });
-    const shortTimeStr = now.toLocaleTimeString('es-PE', {
+    }).format(now);
+
+    const shortTimeStr = new Intl.DateTimeFormat('es-PE', {
+      timeZone: PERU_TZ,
       hour12: false,
       hour: '2-digit',
       minute: '2-digit'
-    });
-    const dateStr = now.toLocaleDateString('es-PE', {
+    }).format(now);
+
+    const dateStr = new Intl.DateTimeFormat('es-PE', {
+      timeZone: PERU_TZ,
       weekday: 'long',
       day: 'numeric',
       month: 'short',
       year: 'numeric'
-    });
+    }).format(now);
 
     if (headerLiveClock) headerLiveClock.textContent = timeStr;
     if (statusClock) statusClock.textContent = shortTimeStr;
@@ -115,9 +122,15 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateClock, 1000);
   updateClock();
 
-  // Set default admin date picker to today
-  const todayIso = new Date().toISOString().split('T')[0];
-  if (adminFilterDate) adminFilterDate.value = todayIso;
+  // Set default admin date picker to Peru today (YYYY-MM-DD)
+  const todayPeruIso = new Intl.DateTimeFormat('en-CA', {
+    timeZone: PERU_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
+
+  if (adminFilterDate) adminFilterDate.value = todayPeruIso;
 
   // ====================================================
   // TOAST NOTIFICATIONS
@@ -180,30 +193,124 @@ document.addEventListener('DOMContentLoaded', () => {
   loadNetworkInfo();
 
   // ====================================================
-  // TABS NAVIGATION
+  // TABS NAVIGATION & ADMIN PIN (PIN: 2804)
   // ====================================================
+  const ADMIN_SECRET_PIN = '2804';
+  const modalAdminPin = document.getElementById('modal-admin-pin');
+  const adminPinInput = document.getElementById('admin-pin-input');
+  const pinErrorMsg = document.getElementById('pin-error-msg');
+  const btnSubmitPin = document.getElementById('btn-submit-pin');
+  const btnCancelPin = document.getElementById('btn-cancel-pin');
+  const btnAdminLogout = document.getElementById('btn-admin-logout');
+  let currentActiveTab = 'tab-marcar';
+
+  function switchTab(targetTab) {
+    currentActiveTab = targetTab;
+    navItems.forEach(n => {
+      if (n.getAttribute('data-tab') === targetTab) {
+        n.classList.add('active');
+      } else {
+        n.classList.remove('active');
+      }
+    });
+
+    tabScreens.forEach(s => s.classList.remove('active'));
+    const targetScreen = document.getElementById(targetTab);
+    if (targetScreen) targetScreen.classList.add('active');
+
+    if (targetTab === 'tab-admin') {
+      loadAdminAttendances();
+    } else if (targetTab === 'tab-historial') {
+      loadHistorial();
+    } else if (targetTab === 'tab-marcar') {
+      if (lockedMapInstance) {
+        setTimeout(() => lockedMapInstance.invalidateSize(), 200);
+      }
+    }
+  }
+
+  function openPinModal() {
+    if (modalAdminPin) {
+      modalAdminPin.classList.add('active');
+      if (adminPinInput) {
+        adminPinInput.value = '';
+        if (pinErrorMsg) pinErrorMsg.style.display = 'none';
+        setTimeout(() => adminPinInput.focus(), 150);
+      }
+    }
+  }
+
+  function closePinModal() {
+    if (modalAdminPin) {
+      modalAdminPin.classList.remove('active');
+      if (adminPinInput) adminPinInput.value = '';
+      if (pinErrorMsg) pinErrorMsg.style.display = 'none';
+    }
+  }
+
   navItems.forEach(item => {
     item.addEventListener('click', () => {
       const targetTab = item.getAttribute('data-tab');
       
-      navItems.forEach(n => n.classList.remove('active'));
-      tabScreens.forEach(s => s.classList.remove('active'));
-
-      item.classList.add('active');
-      const targetScreen = document.getElementById(targetTab);
-      if (targetScreen) targetScreen.classList.add('active');
-
+      // If clicking Admin tab, require PIN 2804!
       if (targetTab === 'tab-admin') {
-        loadAdminAttendances();
-      } else if (targetTab === 'tab-historial') {
-        loadHistorial();
-      } else if (targetTab === 'tab-marcar') {
-        if (lockedMapInstance) {
-          setTimeout(() => lockedMapInstance.invalidateSize(), 200);
+        const isAuth = sessionStorage.getItem('movistar_admin_pin') === ADMIN_SECRET_PIN;
+        if (!isAuth) {
+          openPinModal();
+          return;
         }
       }
+
+      switchTab(targetTab);
     });
   });
+
+  // Verify PIN submission
+  function handlePinVerification() {
+    const enteredPin = (adminPinInput ? adminPinInput.value : '').trim();
+    if (enteredPin === ADMIN_SECRET_PIN) {
+      sessionStorage.setItem('movistar_admin_pin', ADMIN_SECRET_PIN);
+      closePinModal();
+      SoundEffects.playSuccess();
+      showToast('✅ Acceso concedido al Administrador', 'success');
+      switchTab('tab-admin');
+    } else {
+      SoundEffects.playError();
+      if (pinErrorMsg) pinErrorMsg.style.display = 'block';
+      if (adminPinInput) {
+        adminPinInput.classList.add('input-shake');
+        setTimeout(() => adminPinInput.classList.remove('input-shake'), 400);
+        adminPinInput.value = '';
+        adminPinInput.focus();
+      }
+    }
+  }
+
+  if (btnSubmitPin) {
+    btnSubmitPin.addEventListener('click', handlePinVerification);
+  }
+
+  if (adminPinInput) {
+    adminPinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handlePinVerification();
+    });
+  }
+
+  if (btnCancelPin) {
+    btnCancelPin.addEventListener('click', () => {
+      closePinModal();
+      // Keep on current active tab
+      switchTab(currentActiveTab || 'tab-marcar');
+    });
+  }
+
+  if (btnAdminLogout) {
+    btnAdminLogout.addEventListener('click', () => {
+      sessionStorage.removeItem('movistar_admin_pin');
+      showToast('🔒 Sesión de Administrador cerrada', 'info');
+      switchTab('tab-marcar');
+    });
+  }
 
   // ====================================================
   // DNI LOOKUP & REMEMBER FEATURE
@@ -565,18 +672,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render Leaflet Map
     renderLockedMap(record.lat, record.lng, record.nombre, record.hora);
 
-    // Setup worker WhatsApp share
+    // Setup worker WhatsApp share (Reporte de Ingreso individual)
     btnWorkerShareWhatsapp.onclick = () => {
-      const msg = `📱 *MI COMPROBANTE DE ASISTENCIA - MOVISTAR*\n` +
+      const msg = `📱 *REPORTE DE INGRESO - MOVISTAR*\n` +
         `━━━━━━━━━━━━━━━━━━━━━\n` +
         `👤 *Colaborador:* ${record.nombre}\n` +
         `🆔 *DNI:* ${record.dni}\n` +
         `📅 *Fecha:* ${record.fecha}\n` +
-        `⏰ *Hora:* ${record.hora}\n` +
+        `⏰ *Hora de Ingreso:* ${record.hora}\n` +
         `📍 *Lugar:* ${record.direccion}\n` +
-        `🗺️ *Ubicación en Google Maps:*\n${record.googleMapsUrl}\n` +
+        `🗺️ *Ubicación GPS:*\n${record.googleMapsUrl}\n` +
         `━━━━━━━━━━━━━━━━━━━━━\n` +
-        `✅ *Marcación Exitosa verificada con GPS satelital Movistar*`;
+        `✅ *Asistencia registrada y validada con GPS satelital*`;
       
       const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
       window.open(waUrl, '_blank');
@@ -692,11 +799,21 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentAdminRecords = [];
 
   async function loadAdminAttendances() {
-    const selectedDate = adminFilterDate.value || todayIso;
+    const selectedDate = adminFilterDate.value || todayPeruIso;
     adminAttendanceList.innerHTML = '<div style="text-align: center; padding: 24px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando asistencias...</div>';
 
     try {
-      const res = await fetch(`/api/asistencias?fecha=${selectedDate}`);
+      const pin = sessionStorage.getItem('movistar_admin_pin') || ADMIN_SECRET_PIN;
+      const res = await fetch(`/api/asistencias?fecha=${selectedDate}`, {
+        headers: { 'x-admin-pin': pin }
+      });
+      if (res.status === 403) {
+        sessionStorage.removeItem('movistar_admin_pin');
+        showToast('🔒 PIN de administrador requerido', 'error');
+        switchTab('tab-marcar');
+        openPinModal();
+        return;
+      }
       const data = await res.json();
       currentAdminRecords = data;
       data.forEach(item => recordsCache.set(item.id, item));
@@ -764,17 +881,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const record = recordsCache.get(id) || currentAdminRecords.find(r => r.id === id) || currentTodayRecord;
     if (!record) return;
 
-    const msg = `📱 *REPORTE DE ASISTENCIA - MOVISTAR*\n` +
+    const msg = `📱 *REPORTE DE INGRESO - MOVISTAR*\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
       `👤 *Colaborador:* ${record.nombre}\n` +
       `🆔 *DNI:* ${record.dni}\n` +
       `📅 *Fecha:* ${record.fecha}\n` +
-      `⏰ *Hora:* ${record.hora}\n` +
+      `⏰ *Hora de Ingreso:* ${record.hora}\n` +
       `📍 *Ubicación:* ${record.direccion}\n` +
       `🧭 *Coordenadas:* ${record.lat.toFixed(5)}, ${record.lng.toFixed(5)}\n` +
-      `🗺️ *Ver en Google Maps:*\n${record.googleMapsUrl}\n` +
+      `🗺️ *Ubicación GPS:*\n${record.googleMapsUrl}\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `✅ *Marcación Exitosa validada con GPS satelital*`;
+      `✅ *Asistencia registrada y validada con GPS satelital*`;
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, '_blank');
@@ -784,11 +901,17 @@ document.addEventListener('DOMContentLoaded', () => {
   window.deleteRecord = async (id) => {
     if (!confirm('¿Estás seguro de eliminar este registro de asistencia?')) return;
     try {
-      const res = await fetch(`/api/asistencias/${id}`, { method: 'DELETE' });
+      const pin = sessionStorage.getItem('movistar_admin_pin') || ADMIN_SECRET_PIN;
+      const res = await fetch(`/api/asistencias/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-pin': pin }
+      });
       if (res.ok) {
         showToast('Registro eliminado con éxito', 'success');
         recordsCache.delete(id);
         loadAdminAttendances();
+      } else {
+        showToast('Error: Requiere PIN de administrador', 'error');
       }
     } catch (e) {
       showToast('Error al eliminar registro', 'error');
@@ -797,7 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Generate Daily Summary formatted for WhatsApp
   function buildDailySummaryText() {
-    const selectedDate = adminFilterDate.value || todayIso;
+    const selectedDate = adminFilterDate.value || todayPeruIso;
     if (!currentAdminRecords || currentAdminRecords.length === 0) {
       return `📊 *REPORTE DE ASISTENCIA MOVISTAR*\n📅 *Fecha:* ${selectedDate}\n\n⚠️ No se registran asistencias para esta fecha.`;
     }
@@ -848,12 +971,24 @@ document.addEventListener('DOMContentLoaded', () => {
   btnAdminResetToday.addEventListener('click', async () => {
     if (!confirm('¿Deseas reiniciar las marcaciones de hoy para realizar nuevas pruebas?')) return;
     try {
-      const res = await fetch('/api/asistencias/reset-hoy', { method: 'POST' });
+      const pin = sessionStorage.getItem('movistar_admin_pin') || ADMIN_SECRET_PIN;
+      const res = await fetch('/api/asistencias/reset-hoy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pin': pin
+        },
+        body: JSON.stringify({ pin })
+      });
       const data = await res.json();
-      showToast(data.message, 'success');
-      loadAdminAttendances();
-      sectionYaMarco.style.display = 'none';
-      sectionFormMarcar.style.display = 'block';
+      if (res.ok) {
+        showToast(data.message, 'success');
+        loadAdminAttendances();
+        sectionYaMarco.style.display = 'none';
+        sectionFormMarcar.style.display = 'block';
+      } else {
+        showToast(data.error || 'No autorizado', 'error');
+      }
     } catch (e) {
       showToast('Error al reiniciar', 'error');
     }
